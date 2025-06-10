@@ -1,0 +1,160 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String       @id @default(cuid())
+  first_name  String
+  last_name   String
+  email       String       @unique
+  password    String
+  role        Role         @default(USER)
+  restaurants Restaurant[]
+  orders      Order[]
+  deliveries  Delivery[]
+
+  @@map("users")
+}
+
+model Restaurant {
+  id       String  @id @default(cuid())
+  name     String
+  user_id  String
+  user     User    @relation(fields: [user_id], references: [id])
+  items    Item[]
+  menus    Menu[]
+  orders   Order[]
+
+  @@map("restaurants")
+}
+
+model Menu {
+  id            String     @id @default(cuid())
+  name          String
+  restaurant_id String
+  restaurant    Restaurant @relation(fields: [restaurant_id], references: [id])
+  items         Item[]
+
+  @@map("menus")
+}
+
+model Item {
+  id            String      @id @default(cuid())
+  name          String
+  price         Float
+  status        ItemStatus  @default(AVAILABLE)
+  image_url     String?
+  restaurant_id String
+  restaurant    Restaurant  @relation(fields: [restaurant_id], references: [id])
+  menu_id       String?
+  menu          Menu?       @relation(fields: [menu_id], references: [id])
+  orderItems    OrderItem[]
+
+  @@map("items")
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  status        OrderStatus @default(PENDING)
+  timestamp     DateTime    @default(now())
+  total_price   Float
+  user_id       String
+  user          User        @relation(fields: [user_id], references: [id])
+  restaurant_id String
+  restaurant    Restaurant  @relation(fields: [restaurant_id], references: [id])
+  payment       Payment?
+  delivery      Delivery?
+  orderItems    OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id       String @id @default(cuid())
+  order_id String
+  order    Order  @relation(fields: [order_id], references: [id])
+  item_id  String
+  item     Item   @relation(fields: [item_id], references: [id])
+  quantity Int
+
+  @@map("order_items")
+}
+
+model OrderMenu {
+  id    String @id @default(cuid())
+  order_
+}
+
+
+model Payment {
+  id              String        @id @default(cuid())
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  transaction_id  String?
+  order_id        String        @unique
+  order           Order         @relation(fields: [order_id], references: [id])
+
+  @@map("payments")
+}
+
+model Delivery {
+  id            String         @id @default(cuid())
+  status        DeliveryStatus @default(PENDING)
+  pickup_time   DateTime?
+  delivery_time DateTime?
+  order_id      String         @unique
+  order         Order          @relation(fields: [order_id], references: [id])
+  user_id       String
+  user          User           @relation(fields: [user_id], references: [id])
+
+  @@map("deliveries")
+}
+
+enum Role {
+  CLIENT
+  ADMIN
+  DELIVERY_PERSON
+  RESTAURANT_OWNER
+}
+
+enum ItemStatus {
+  AVAILABLE
+  UNAVAILABLE
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum DeliveryStatus {
+  PENDING
+  ASSIGNED
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+}
