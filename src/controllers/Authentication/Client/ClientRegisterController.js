@@ -1,13 +1,14 @@
 import asyncHandler from 'express-async-handler';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-const {prismaClient} = require('@prisma/client');
-import { generateToken } from '../helper/JWTgenerate';
+import prisma from '../../../config/dbConnection.js';
+import { generateToken } from '../helper/JWTgenerate.js';
+import { Prisma } from '@prisma/client';
 
 import express from 'express';
  
 
-const registerClient = async (req, res) => {
+export const RegisterClient = async (req, res) => {
     try {
         const { firstName, lastName, email, password, role } = req.body;
 
@@ -45,7 +46,7 @@ const registerClient = async (req, res) => {
                 firstName,
                 lastName,
                 email,
-                passwordHash,
+                password:passwordHash,
                 role,
             },
         });
@@ -63,7 +64,7 @@ const registerClient = async (req, res) => {
             success: true,
             message: 'User registered successfully.',
             data: {
-                user, 
+                user:newUser, 
                 expiresIn : process.env.JWT_EXPIRES_IN || '1h',
                 
             },
@@ -139,8 +140,3 @@ const LoginClient = async (req, res) => {
     
 }
 
-
-module.exports = {
-    registerClient,
-    LoginClient
-};

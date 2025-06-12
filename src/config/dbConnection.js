@@ -1,20 +1,8 @@
-import mysql from "mysql";
-import dotenv from "dotenv";
+import { PrismaPg } from '@prisma/adapter-pg'
+import { PrismaClient } from '@prisma/client'
 
-var dbconn=mysql.createConnection({
-host: process.env.DB_HOST,
-user: process.env.DB_USER,
-password: process.env.DB_PASSWORD,
-database: process.env.DB_NAME,
+const connectionString = process.env.DATABASE_URL
+const adapter = new PrismaPg({ connectionString })
+const prisma = new PrismaClient({ adapter })
 
-})
-
-dbconn.connect((err) => {
-  if (err) {
-    console.error("Error connecting to the database:", err);
-  } else {
-    console.log("Connected to the database successfully.");
-  }
-})
-
-module.exports = dbconn;
+export default prisma

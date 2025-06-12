@@ -11,3 +11,4 @@ export const generateToken = (userId, email, role) => {
         expiresIn: JWT_EXPIRES_IN,
     });
 };
+

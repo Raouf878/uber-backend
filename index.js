@@ -6,14 +6,18 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
-import dbconnect from "./config/dbConnection.js";
+import RegisterRoute from "./src/routes/register/RegisterRoute.js";
+
 
 const app = express();
-app.useexpress.json();
+app.use(express.json());
 app.use(cors());
 app.use(cookieParser());
+const port = process.env.port ;
+console.log(`port is ${port}`);
 
-app.post("/register", require("./routes/register/RegisterRoute.js"));
+
+app.use("/register", RegisterRoute);
 
 
 app.listen(port,()=>{
