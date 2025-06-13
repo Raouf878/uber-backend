@@ -87,7 +87,7 @@ export const RegisterClient = async (req, res) => {
     }
 };
 
-const LoginClient = async (req, res) => {
+export const LoginClient = async (req, res) => {
     try {
 
         const { email, password } = req.body;
@@ -106,7 +106,7 @@ const LoginClient = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
-        const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+        const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
             return res.status(401).json({ success: false, message: 'Invalid password.' });
         }
