@@ -25,7 +25,7 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-app.get('/api/${service_name//-service/}', (req, res) => {
+app.use('/auth', (req, res) => {
   res.json({
     message: 'auth-service is running!',
     service: 'auth-service',

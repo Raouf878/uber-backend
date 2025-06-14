@@ -25,15 +25,15 @@ app.use(helmet());
 
 
 const services = {
-    auth : process.env.AUTH_SERVICE_URL || "http://localhost:3001",
-    payment : process.env.PAYMENT_SERVICE_URL || "http://localhost:3002",
-    order : process.env.ORDER_SERVICE_URL || "http://localhost:3003",
-    userService : process.env.USER_SERVICE_URL || "http://localhost:3004",
-    RestaurantService : process.env.RESTAURANT_SERVICE_URL || "http://localhost:3005",
-    DeliveryService : process.env.DELIVERY_SERVICE_URL || "http://localhost:3006",
-    LocationService : process.env.LOCATION_SERVICE_URL || "http://localhost:3007",
-    NotificationService : process.env.NOTIFICATION_SERVICE_URL || "http://localhost:3008",
-    AnalyticsService : process.env.ANALYTICS_SERVICE_URL || "http://localhost:3009",
+    auth : process.env.AUTH_SERVICE_URL || "http://localhost:3001/auth",
+    payment : process.env.PAYMENT_SERVICE_URL || "http://localhost:3002/payment",
+    order : process.env.ORDER_SERVICE_URL || "http://localhost:3003/order",
+    userService : process.env.USER_SERVICE_URL || "http://localhost:3004/user",
+    RestaurantService : process.env.RESTAURANT_SERVICE_URL || "http://localhost:3005/restaurant",
+    DeliveryService : process.env.DELIVERY_SERVICE_URL || "http://localhost:3006/delivery",
+    LocationService : process.env.LOCATION_SERVICE_URL || "http://localhost:3007/location",
+    NotificationService : process.env.NOTIFICATION_SERVICE_URL || "http://localhost:3008/notification",
+    AnalyticsService : process.env.ANALYTICS_SERVICE_URL || "http://localhost:3009/analytics",
 }
 
 
@@ -53,14 +53,34 @@ const proxyOptions = {
 
 
 
-app.use("/register", HttpProxy.createProxyMiddleware({
+app.use("/restaurant", HttpProxy.createProxyMiddleware({
     target: services.auth,
     ...proxyOptions,
     pathRewrite: {
-        '^/register': '/create-account',
+        '^/restaurant': '/restaurant', // Remove /auth from the path before forwarding
     },
 }));
-
+app.use("/order", HttpProxy.createProxyMiddleware({
+    target: services.auth,
+    ...proxyOptions,
+    pathRewrite: {
+        '^/auth': '/auth', // Remove /auth from the path before forwarding
+    },
+}));
+app.use("/auth", HttpProxy.createProxyMiddleware({
+    target: services.auth,
+    ...proxyOptions,
+    pathRewrite: {
+        '^/auth': '/auth', // Remove /auth from the path before forwarding
+    },
+}));
+app.use("/auth", HttpProxy.createProxyMiddleware({
+    target: services.auth,
+    ...proxyOptions,
+    pathRewrite: {
+        '^/auth': '/auth', // Remove /auth from the path before forwarding
+    },
+}));
 
 
 app.use((err, req, res, next) => {

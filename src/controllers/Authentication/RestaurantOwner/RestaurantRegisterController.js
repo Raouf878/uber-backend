@@ -6,7 +6,7 @@ import { generateToken } from '../helper/JWTgenerate.js';
 import { Prisma } from '@prisma/client';
 
 
-export const RegisterRestaurantOwner = asyncHandler(async (req, res) => {
+export const RegisterRestaurantOwner =asyncHandler(async (req, res) => {
     const { firstName, lastName, email, password, role, restaurantName, restaurantLat, restaurantLong, RestaurantAddress } = req.body;
     console.log(email, password, role, firstName, lastName, restaurantName, RestaurantAddress, restaurantLat, restaurantLong);
     
