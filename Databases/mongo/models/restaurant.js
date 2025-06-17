@@ -4,29 +4,13 @@ const restaurantLocationSchema = new mongoose.Schema({
   restaurantId: {
     type: Number,
     required: true,
-    unique: true,
-    index: true  // Add index for performance
+    unique: true
   },
-  latitude: {
-    type: Number,
-    required: true
-  },
-  longitude: {
-    type: Number,
-    required: true
-  },
-  address: {
-    type: String,
-    required: true
-  },
-  openingHours: {
-    type: String,
-    required: true
-  },
-  closingHours: {
-    type: String,
-    required: true
-  },
+  latitude: { type: Number, required: true },
+  longitude: { type: Number, required: true },
+  address: { type: String, required: true },
+  openingHours: { type: String, required: true },
+  closingHours: { type: String, required: true },
   workingDays: {
     type: [String],
     required: true,
@@ -36,12 +20,7 @@ const restaurantLocationSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Force the collection name to match what you have in MongoDB
-const RestaurantInfo = mongoose.model('RestaurantInfos', restaurantLocationSchema);
-RestaurantInfo.init().then(() => {
-  console.log('RestaurantInfo indexes created');
-}).catch(err => {
-  console.error('Index creation error:', err);
-});
+// Force collection name and check if model already exists
+const RestaurantInfos = mongoose.model('RestaurantInfos', restaurantLocationSchema);
 
-export default RestaurantInfo;
+export default RestaurantInfos;

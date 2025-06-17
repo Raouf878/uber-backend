@@ -27,12 +27,7 @@ app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-await connectDB().then(() => {
-    console.log("✅ MongoDB connected successfully");
-}).catch((err) => {
-    console.error("❌ MongoDB connection failed:", err);
-    process.exit(1); // Exit the process if DB connection fails
-});
+
 
 // Health check endpoint
 
@@ -62,6 +57,7 @@ app.use('*', (req, res) => {
     path: req.originalUrl
   });
 });
+// Add this test endpoint temporarily
 
 
 

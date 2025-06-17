@@ -20,12 +20,7 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-await connectDB().then(() => {
-    console.log("✅ MongoDB connected successfully");
-}).catch((err) => {
-    console.error("❌ MongoDB connection failed:", err);
-    process.exit(1); // Exit the process if DB connection fails
-});
+
 
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cors({
