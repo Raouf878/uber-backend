@@ -1,14 +1,16 @@
 import asyncHandler from 'express-async-handler';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-const {prismaClient} = require('@prisma/client');
-import { generateToken } from '../helper/JWTgenerate';
+import prisma from '../../../config/dbConnection.js';
+import { generateToken } from '../helper/JWTgenerate.js';
+import { Prisma } from '@prisma/client';
 
 import express from 'express';
  
 
-const registerClient = async (req, res) => {
+export const RegisterClient = async (req, res) => {
     try {
+        console.log('Received registration request:', req.body);
         const { firstName, lastName, email, password, role } = req.body;
 
         // 1. Validate Input
@@ -45,7 +47,7 @@ const registerClient = async (req, res) => {
                 firstName,
                 lastName,
                 email,
-                passwordHash,
+                password:passwordHash,
                 role,
             },
         });
@@ -63,7 +65,7 @@ const registerClient = async (req, res) => {
             success: true,
             message: 'User registered successfully.',
             data: {
-                user, 
+                user:newUser, 
                 expiresIn : process.env.JWT_EXPIRES_IN || '1h',
                 
             },
@@ -86,7 +88,7 @@ const registerClient = async (req, res) => {
     }
 };
 
-const LoginClient = async (req, res) => {
+export const LoginClient = async (req, res) => {
     try {
 
         const { email, password } = req.body;
@@ -105,7 +107,7 @@ const LoginClient = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
-        const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+        const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
             return res.status(401).json({ success: false, message: 'Invalid password.' });
         }
@@ -139,8 +141,3 @@ const LoginClient = async (req, res) => {
     
 }
 
-
-module.exports = {
-    registerClient,
-    LoginClient
-};

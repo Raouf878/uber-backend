@@ -1,0 +1,114 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int          @id @default(autoincrement())
+  firstName   String
+  lastName    String
+  email       String       @unique
+  password    String
+  role        String
+  orders      Order[]
+  deliveries  Delivery[]
+  restaurants Restaurant[] // Added missing relation field
+}
+
+model Restaurant {
+  id     Int     @id @default(autoincrement())
+  userId Int
+  user   User    @relation(fields: [userId], references: [id])
+  name   String
+  menu   Menu[]
+  orders Order[] // Added missing relation field
+}
+
+model Menu {
+  id           Int         @id @default(autoincrement())
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+  restaurantId Int
+  items        MenuItem[]
+  orderMenus   OrderMenu[]
+}
+
+model Items {
+  id         Int         @id @default(autoincrement())
+  itemId     String
+  name       String
+  restaurantIdId       Int
+  restaurant         restaurant        @relation(fields: [restaurantId], references: [id])
+  price      Float
+  status     String
+  imageUrl   String
+  orderItems OrderItem[]
+  menuItems  MenuItem[]
+}
+
+model Order {
+  id           Int         @id @default(autoincrement())
+  userId       Int
+  user         User        @relation(fields: [userId], references: [id])
+  restaurantId Int // Added missing field
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id]) // Added missing relation
+  status       String
+  timestamp    DateTime
+  totalPrice   Float
+  orderItems   OrderItem[]
+  orderMenus   OrderMenu[]
+  deliveries   Delivery[]
+  payments     Payment[]
+}
+
+model OrderItem {
+  orderId  Int
+  order    Order @relation(fields: [orderId], references: [id])
+  itemId   Int
+  item     Items @relation(fields: [itemId], references: [id])
+  quantity Int
+
+  @@id([orderId, itemId])
+}
+
+model OrderMenu {
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [id])
+  menuId  Int
+  menu    Menu  @relation(fields: [menuId], references: [id])
+
+  @@id([orderId, menuId])
+}
+
+model MenuItem {
+  menuId Int
+  menu   Menu  @relation(fields: [menuId], references: [id])
+  itemId Int
+  item   Items @relation(fields: [itemId], references: [id])
+
+  @@id([menuId, itemId])
+}
+
+model Payment {
+  id            Int    @id @default(autoincrement())
+  orderId       Int
+  order         Order  @relation(fields: [orderId], references: [id])
+  method        String
+  status        String
+  transactionId String
+}
+
+model Delivery {
+  id           Int      @id @default(autoincrement())
+  orderId      Int
+  order        Order    @relation(fields: [orderId], references: [id])
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  status       String
+  pickupTime   DateTime
+  deliveryTime DateTime
+}
