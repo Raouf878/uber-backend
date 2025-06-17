@@ -10,6 +10,7 @@ import express from 'express';
 
 export const RegisterClient = async (req, res) => {
     try {
+        console.log('Received registration request:', req.body);
         const { firstName, lastName, email, password, role } = req.body;
 
         // 1. Validate Input
