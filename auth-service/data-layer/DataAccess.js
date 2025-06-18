@@ -81,6 +81,9 @@ class DataAccess extends DatabaseService {
         }
     }
     async RegisterClient(clientData){
+        const { firstName, lastName, email, password, role } = clientData;
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(password, salt);
         const newUser = await prisma.user.create({
                     data: {
                         firstName,

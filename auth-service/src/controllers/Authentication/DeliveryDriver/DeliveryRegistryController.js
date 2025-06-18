@@ -73,7 +73,7 @@ export const RegisterDeliveryDriver = asyncHandler(async (req, res) => {
 
   export const DeliveryLogin = asyncHandler(async (req, res) => {
 
-    const [email, password]= req.body;
+    const {email, password}= req.body;
     if (!email || !password){
 
         return res.status(400).json({success : false, message: ' Please provide email and password.' });
