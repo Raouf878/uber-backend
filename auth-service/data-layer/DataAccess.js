@@ -3,13 +3,26 @@ import prisma from '../src/config/dbConnection.js';
 import RestaurantInfo from "../../Databases/mongo/models/restaurant.js";
 import bcrypt from 'bcrypt';
  import { Prisma } from '@prisma/client';
+ import DatabaseService from './DatabaseService.js';
+ import connectDB from '../src/config/mongoDb.js';
 
 
-class DataAccess {
+class DataAccess extends DatabaseService {
     constructor(){
+        super();
         this.prisma = prisma;
         this.RestaurantInfo = RestaurantInfo;
+        this.connectDB = connectDB;
+        this.initializeMongoDB();
     }
+    async initializeMongoDB() {
+        try {
+          await this.connectDB();
+          console.log('MongoDB connection initialized in RestaurantService');
+        } catch (error) {
+          console.error('Failed to initialize MongoDB connection:', error);
+        }
+      }
     async RegisterRestaurant(restaurantData) {
         const {firstName, lastName, restaurantName, email, password, restaurantLat, restaurantLong, restaurantAddress, openingHours, closingHours, workingDays,role}= restaurantData;
         try {

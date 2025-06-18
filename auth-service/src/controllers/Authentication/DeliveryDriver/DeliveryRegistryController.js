@@ -7,13 +7,11 @@ import { Prisma } from '@prisma/client';
 import DataAccess from '../../../../data-layer/DataAccess.js';
 
 
+const dataAccess = new DataAccess();
 
-export class RegisterDeliveryDriver{
-    constructor() {
-        this.RestaurantAuthController = new DataAccess();
-    }
+    
 
-RegisterDeliveryDriver = asyncHandler(async (req, res) => {
+export const RegisterDeliveryDriver = asyncHandler(async (req, res) => {
     // Destructure the required fields from the request body
     const { firstName, lastName, email, password, role } = req.body;
 
@@ -36,7 +34,7 @@ RegisterDeliveryDriver = asyncHandler(async (req, res) => {
             return res.status(409).json({success :false, messeage : `User with email ${email} already exists as a ${role}.`});
         }
 
-        const newUser = await this.RestaurantAuthController.RegisterRestaurant(req.body);
+        const newUser = await dataAccess.RegisterDeliveryPerson(req.body);
         const token = generateToken(newUser.id, newUser.email, newUser.role)
         res.cookie('token', token, {
             httpOnly: true,
@@ -72,7 +70,8 @@ RegisterDeliveryDriver = asyncHandler(async (req, res) => {
 
 })
 
-  DeliveryLogin = asyncHandler(async (req, res) => {
+
+  export const DeliveryLogin = asyncHandler(async (req, res) => {
 
     const [email, password]= req.body;
     if (!email || !password){
@@ -116,4 +115,4 @@ RegisterDeliveryDriver = asyncHandler(async (req, res) => {
     });
 
   })
-}
+

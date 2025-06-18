@@ -36,7 +36,7 @@ router.use((req, res, next) => {
 
 // Restaurant routes
 router.post('/restaurants', createRestaurant);
-router.get('/restaurants', getAllRestaurants);
+router.get('/get/restaurants', getAllRestaurants);
 router.get('/restaurants/:id', getRestaurant);
 router.get('/users/:userId/restaurants', getUserRestaurants);
 router.put('/restaurants/:id/location', updateRestaurantLocation);
