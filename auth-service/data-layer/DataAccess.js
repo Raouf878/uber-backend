@@ -1,7 +1,8 @@
 
 import prisma from '../src/config/dbConnection.js';
 import RestaurantInfo from "../../Databases/mongo/models/restaurant.js";
-import bcrypt from 'bcrypt';    
+import bcrypt from 'bcrypt';
+ import { Prisma } from '@prisma/client';
 
 
 class DataAccess {
@@ -10,7 +11,7 @@ class DataAccess {
         this.RestaurantInfo = RestaurantInfo;
     }
     async RegisterRestaurant(restaurantData) {
-        const {firstName, lastName, restaurantName, email, password, restaurantLat, restaurantLong, RestaurantAddress, openingHours, closingHours, workingDays,role}= restaurantData;
+        const {firstName, lastName, restaurantName, email, password, restaurantLat, restaurantLong, restaurantAddress, openingHours, closingHours, workingDays,role}= restaurantData;
         try {
             const salt = await bcrypt.genSalt(10);
             const passwordHash = await bcrypt.hash(password, salt);
@@ -37,10 +38,10 @@ class DataAccess {
                     
                     // Save restaurant location data to MongoDB
                     const RestaurantInfo = new this.RestaurantInfo({
-                        restaurantId: newRestaurant.id,
+                        restaurantId: newUser.id,
                         latitude: restaurantLat ? parseFloat(restaurantLat) : null,
                         longitude: restaurantLong ? parseFloat(restaurantLong) : null,
-                        address: RestaurantAddress,
+                        address: restaurantAddress,
                         openingHours,
                         closingHours,
                         workingDays

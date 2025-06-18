@@ -12,8 +12,10 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import authRoutes from './src/routes/authentication.js';
 import connectDB from "./src/config/mongoDb.js";
+import env from 'dotenv';
 const app = express();
 const PORT = 3001;
+env.config();
 
 // Middleware
 app.use(helmet());

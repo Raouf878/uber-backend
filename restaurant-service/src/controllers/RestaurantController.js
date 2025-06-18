@@ -180,6 +180,26 @@ export const createMenu = async (req, res) => {
   }
 
   /**
+   * Update a menu by ID
+   * PUT /api/menus/:menuId
+   */
+  export const updateMenu = async (req, res) => {
+    try {
+      const { menuId } = req.params;
+      const menuData = req.body;
+      const result = await restaurantService.updateMenu(parseInt(menuId), menuData);
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Error in updateMenu controller:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update menu',
+        error: error.message
+      });
+    }
+  }
+
+  /**
    * Delete a menu
    * DELETE /api/menus/:menuId
    */
@@ -226,13 +246,14 @@ export const createMenu = async (req, res) => {
   }
 
   // ============ ITEM CONTROLLERS ============
-
   /**
    * Create a new item
-   * POST /api/items
+   * POST /api/restaurants/:restaurantId/items
+   * or POST /api/restaurants/:restaurantId/menus/:menuId/items
    */
   export const createItem = async (req, res) => {
     try {
+      const { restaurantId, menuId } = req.params;
       const itemData = req.body;
 
       // Validation
@@ -243,7 +264,18 @@ export const createMenu = async (req, res) => {
         });
       }
 
-      const result = await this.menuService.createItem(itemData);
+      if (!restaurantId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Restaurant ID is required'
+        });
+      }
+
+      const result = await restaurantService.createItem(
+        parseInt(restaurantId), 
+        menuId ? parseInt(menuId) : null, 
+        itemData
+      );
       
       res.status(201).json(result);
     } catch (error) {
@@ -255,7 +287,6 @@ export const createMenu = async (req, res) => {
       });
     }
   }
-
   /**
    * Get all items with pagination and filtering
    * GET /api/items
@@ -280,7 +311,7 @@ export const createMenu = async (req, res) => {
         priceMax: priceMax ? parseFloat(priceMax) : null
       };
 
-      const result = await this.menuService.getAllItems(options);
+      const result = await restaurantService.getAllItems(options);
       
       res.status(200).json(result);
     } catch (error) {

@@ -1,0 +1,22 @@
+{
+  "name": "uber-backend-seeders",
+  "version": "1.0.0",
+  "description": "Database seeders for Uber Backend",
+  "type": "module",  "scripts": {
+    "seed": "node seed-all.js",
+    "seed:prisma": "node prisma-seeder.js",
+    "seed:mongo": "node mongo-seeder.js",
+    "seed:mongo-local": "node mongo-seeder-local.js",
+    "clear": "node clear-databases.js",
+    "prisma:generate": "cd .. && npx prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.0.0",
+    "bcrypt": "^5.1.0",
+    "mongoose": "^7.0.0",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.0"
+  }
+}
