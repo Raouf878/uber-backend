@@ -12,12 +12,12 @@ export class RestaurantAuthController{
         this.RestaurantAuthController = new DataAccess();
     }
     RegisterRestaurantOwner =asyncHandler(async (req, res) => {
-    const { firstName, lastName, email, password, role, restaurantName, restaurantLat, restaurantLong, RestaurantAddress } = req.body;
-    console.log(email, password, role, firstName, lastName, restaurantName, RestaurantAddress, restaurantLat, restaurantLong);
+    const { firstName, lastName, email, password, role, restaurantName, restaurantLat, restaurantLong, restaurantAddress } = req.body;
+    console.log(email, password, role, firstName, lastName, restaurantName, restaurantAddress, restaurantLat, restaurantLong);
     
 
     // 1. Validate Input
-    if (!email || !password || !role || !firstName || !lastName || !restaurantName || !RestaurantAddress || !restaurantLat || !restaurantLong) {
+    if (!email || !password || !role || !firstName || !lastName || !restaurantName || !restaurantAddress || !restaurantLat || !restaurantLong) {
         return res.status(400).json({ success: false, message: 'Please provide email, password, name, role, restaurant name and address.' });
     }
 

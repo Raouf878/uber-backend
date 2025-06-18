@@ -41,8 +41,8 @@ model Items {
   id         Int         @id @default(autoincrement())
   itemId     String
   name       String
-  restaurantIdId       Int
-  restaurant         restaurant        @relation(fields: [restaurantId], references: [id])
+  restaurantId      Int
+  restaurant         Restaurant        @relation(fields: [restaurantId], references: [id])
   price      Float
   status     String
   imageUrl   String
