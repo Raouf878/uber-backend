@@ -22,16 +22,16 @@ const options = {
 
 const connectDB = async () => {
   try {
-    console.log(`Connecting to MongoDB at ${process.env.MONGO_URI}...`);
-    
+    console.log(`Connecting to MongoDB at ${'mongodb+srv://raouf:Raouf21@cluster0.5cvf6oy.mongodb.net/crameats?retryWrites=true&w=majority&appName=Cluster0'}...`);
+
     // Close existing connections if any
     if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
     }
     
     // Use the options in the connect call
-    const conn = await mongoose.connect(process.env.MONGO_URI, options);
-    
+    const conn = await mongoose.connect('mongodb+srv://raouf:Raouf21@cluster0.5cvf6oy.mongodb.net/crameats?retryWrites=true&w=majority&appName=Cluster0', options);
+
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     console.log(`Connection state: ${mongoose.connection.readyState}`);
     console.log(`Database name: ${conn.connection.name}`);

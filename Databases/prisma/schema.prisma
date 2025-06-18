@@ -25,6 +25,7 @@ model Restaurant {
   userId Int
   user   User    @relation(fields: [userId], references: [id])
   name   String
+  items  Items[] // Added missing relation field
   menu   Menu[]
   orders Order[] // Added missing relation field
 }
@@ -33,6 +34,9 @@ model Menu {
   id           Int         @id @default(autoincrement())
   restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
   restaurantId Int
+  name         String
+  description  String
+  price        Float
   items        MenuItem[]
   orderMenus   OrderMenu[]
 }

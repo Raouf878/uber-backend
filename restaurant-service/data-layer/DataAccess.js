@@ -22,13 +22,20 @@ class RestaurantService extends DatabaseService {
       console.error('Failed to initialize MongoDB connection:', error);
     }
   }
-
   // Create a new restaurant
   async createRestaurant(restaurantData) {
     const { name, userId, latitude, longitude, address, openingHours, closingHours, workingDays } = restaurantData;
     let restaurant = null;
     
     try {
+      // Validate required fields
+      if (!name || !userId) {
+        throw new Error('Restaurant name and userId are required');
+      }
+
+      // Convert userId to integer if it's a string
+      const userIdInt = typeof userId === 'string' ? parseInt(userId) : userId;
+      
       // Ensure MongoDB connection is ready
       if (mongoose.connection.readyState !== 1) {
         await this.connectDB();
@@ -38,27 +45,26 @@ class RestaurantService extends DatabaseService {
       restaurant = await prisma.restaurant.create({
         data: {
           name,
-          userId
+          userId: userIdInt
         }
-      });
+      });      // Then, save location data to MongoDB (if provided)
+      let restaurantInfo = null;
+      if (latitude && longitude && address) {
+        restaurantInfo = new this.RestaurantInfo({
+          restaurantId: restaurant.id.toString(),
+          latitude: parseFloat(latitude),
+          longitude: parseFloat(longitude),
+          address,
+          openingHours: openingHours || "09:00",
+          closingHours: closingHours || "22:00",
+          workingDays: workingDays || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        });
 
-      // Then, save location data to MongoDB
-      const restaurantInfo = new this.RestaurantInfo({
-        restaurantId: restaurant.id,
-        latitude,
-        longitude,
-        address,
-        openingHours,
-        closingHours,
-        workingDays
-      });
-
-      await restaurantInfo.save();
-
-      return {
+        await restaurantInfo.save();
+      }      return {
         success: true,
         restaurant,
-        location: restaurantInfo
+        location: restaurantInfo || null
       };
 
     } catch (error) {
@@ -76,19 +82,17 @@ class RestaurantService extends DatabaseService {
     }
   }
 
-  // Get restaurant with location data
+  // Get restaurant with location data using direct MongoDB collection access
   async getRestaurant(restaurantId) {
     try {
-      console.log('Fetching restaurant with ID:', restaurantId);
-      
+      // Convert to integer if it's a string
+      const id = typeof restaurantId === 'string' ? parseInt(restaurantId) : restaurantId;
       // Ensure MongoDB connection is ready
       if (mongoose.connection.readyState !== 1) {
-        console.log('MongoDB not connected, reconnecting...');
         await this.connectDB();
       }
-      
       const restaurant = await this.prisma.restaurant.findUnique({
-        where: { id: restaurantId },
+        where: { id: id },
         include: {
           user: {
             select: {
@@ -109,54 +113,68 @@ class RestaurantService extends DatabaseService {
           }
         }
       });
-
-      if (!restaurant) {
-        return null;
-      }
-
-      // Test the collection access like in your connectDB
+      if (!restaurant) return null;
+      // Try direct collection access for location
       try {
         const db = mongoose.connection.db;
-        const count = await db.collection('restaurantinfos').countDocuments();
-        console.log(`Total documents in restaurantinfos collection: ${count}`);
-        
-        // Get a sample document to see the structure
-        const sampleDoc = await db.collection('restaurantinfos').findOne();
-        console.log('Sample document structure:', sampleDoc ? Object.keys(sampleDoc) : 'No documents found');
-        
-        // Now search for the specific restaurant location using direct collection access
-        console.log('Searching for location with restaurantId:', restaurant.id);
-        const location = await db.collection('restaurantinfos').findOne({
-          restaurantId: restaurant.id
-        });
-        
-        console.log('Location found:', location ? 'Yes' : 'No');
-        if (location) {
-          console.log('Location data keys:', Object.keys(location));
-        }
-
-        return {
-          ...restaurant,
-          location
-        };
-      } catch (testError) {
-        console.log('Direct collection access failed:', testError.message);
-        
-        // Fallback to Mongoose model approach
-        console.log('Falling back to Mongoose model approach...');
-        const location = await this.RestaurantInfo.findOne({
-          restaurantId: restaurant.id
-        }).maxTimeMS(5000);
-
-        console.log('Mongoose fallback - Location found:', location ? 'Yes' : 'No');
-
-        return {
-          ...restaurant,
-          location
-        };
+        const location = await db.collection('restaurantinfos').findOne({ restaurantId: id.toString() });
+        return { ...restaurant, location };
+      } catch (err) {
+        // Fallback to Mongoose model
+        const location = await this.RestaurantInfo.findOne({ restaurantId: id.toString() }).maxTimeMS(5000);
+        return { ...restaurant, location };
       }
     } catch (error) {
       console.error('Error in getRestaurant:', error);
+      throw error;
+    }
+  }
+
+  // Get restaurants for a specific user
+  async getUserRestaurants(userId) {
+    try {
+      const id = typeof userId === 'string' ? parseInt(userId) : userId;
+      console.log('Fetching restaurants for user ID:', id);
+      
+      const restaurants = await this.prisma.restaurant.findMany({
+        where: { userId: id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          }
+        }
+      });
+
+      // Get location data for each restaurant
+      const restaurantsWithLocation = await Promise.all(
+        restaurants.map(async (restaurant) => {
+          try {
+            const location = await this.RestaurantInfo.findOne({
+              restaurantId: restaurant.id.toString()
+            }).maxTimeMS(3000);
+            
+            return {
+              ...restaurant,
+              location
+            };
+          } catch (error) {
+            console.error(`Failed to get location for restaurant ${restaurant.id}:`, error);
+            return {
+              ...restaurant,
+              location: null
+            };
+          }
+        })
+      );
+
+      return restaurantsWithLocation;
+    } catch (error) {
+      console.error('Error in getUserRestaurants:', error);
       throw error;
     }
   }
@@ -229,87 +247,85 @@ class RestaurantService extends DatabaseService {
       };
     } catch (error) {
       throw error;
-    }
-  }
+    }  }
 
-  // Update restaurant location data
+  // Update restaurant location data using direct MongoDB collection access
   async updateRestaurantLocation(restaurantId, locationData) {
     try {
-      // Ensure MongoDB connection is ready
+      const id = typeof restaurantId === 'string' ? parseInt(restaurantId) : restaurantId;
       if (mongoose.connection.readyState !== 1) {
         await this.connectDB();
       }
-
-      const updatedLocation = await this.RestaurantInfo.findOneAndUpdate(
-        { restaurantId },
-        locationData,
-        { new: true }
-      ).maxTimeMS(5000);
-
-      return updatedLocation;
-
+      // Try direct collection update
+      try {
+        const db = mongoose.connection.db;
+        const result = await db.collection('restaurantinfos').findOneAndUpdate(
+          { restaurantId: id.toString() },
+          { $set: locationData },
+          { returnDocument: 'after', upsert: true }
+        );
+        return result.value;
+      } catch (err) {
+        // Fallback to Mongoose model
+        const updatedLocation = await this.RestaurantInfo.findOneAndUpdate(
+          { restaurantId: id.toString() },
+          locationData,
+          { new: true, upsert: true }
+        ).maxTimeMS(5000);
+        return updatedLocation;
+      }
     } catch (error) {
+      console.error('Error in updateRestaurantLocation:', error);
       throw error;
     }
   }
-
   // Delete restaurant (from both databases)
   async deleteRestaurant(restaurantId) {
     try {
+      // Convert to integer if it's a string
+      const id = typeof restaurantId === 'string' ? parseInt(restaurantId) : restaurantId;
+      
       // Ensure MongoDB connection is ready
       if (mongoose.connection.readyState !== 1) {
         await this.connectDB();
       }
 
       // Delete from MongoDB first
-      await this.RestaurantInfo.deleteOne({ restaurantId }).maxTimeMS(5000);
+      await this.RestaurantInfo.deleteOne({ restaurantId: id.toString() }).maxTimeMS(5000);
       
       // Then delete from PostgreSQL
       await prisma.restaurant.delete({
-        where: { id: restaurantId }
+        where: { id: id }
       });
 
       return { success: true };
 
     } catch (error) {
+      console.error('Error in deleteRestaurant:', error);
       throw error;
     }
-  }
-  async createMenu(restaurantId, menuData = {}) {
+  }  
+  /**
+   * Create a new menu for a restaurant
+   * @param {number} restaurantId
+   * @param {object} menuData { name, description, price }
+   */
+  async createMenu(restaurantId, menuData) {
     try {
-      // Verify restaurant exists
-      const restaurant = await this.prisma.restaurant.findUnique({
-        where: { id: restaurantId }
-      });
-
-      if (!restaurant) {
-        throw new Error('Restaurant not found');
+      const id = typeof restaurantId === 'string' ? parseInt(restaurantId) : restaurantId;
+      const { name, description, price } = menuData;
+      if (!name || !description || typeof price !== 'number') {
+        throw new Error('Menu name, description, and price are required');
       }
-
       const menu = await this.prisma.menu.create({
         data: {
-          restaurantId,
-          ...menuData
-        },
-        include: {
-          restaurant: {
-            select: {
-              id: true,
-              name: true
-            }
-          },
-          items: {
-            include: {
-              item: true
-            }
-          }
+          restaurantId: id,
+          name,
+          description,
+          price
         }
       });
-
-      return {
-        success: true,
-        menu
-      };
+      return { success: true, menu };
     } catch (error) {
       console.error('Error creating menu:', error);
       throw error;
@@ -317,84 +333,21 @@ class RestaurantService extends DatabaseService {
   }
 
   /**
-   * Get all menus for a restaurant
-   */
-  async getRestaurantMenus(restaurantId, options = {}) {
-    const { includeItems = true } = options;
-
-    try {
-      const menus = await this.prisma.menu.findMany({
-        where: { restaurantId },
-        include: {
-          restaurant: {
-            select: {
-              id: true,
-              name: true
-            }
-          },
-          items: includeItems ? {
-            include: {
-              item: true
-            }
-          } : false,
-          _count: {
-            select: {
-              items: true
-            }
-          }
-        }
-      });
-
-      return {
-        success: true,
-        menus
-      };
-    } catch (error) {
-      console.error('Error fetching restaurant menus:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get a specific menu by ID
+   * Get a menu by ID
+   * @param {number} menuId
    */
   async getMenu(menuId) {
     try {
+      const id = typeof menuId === 'string' ? parseInt(menuId) : menuId;
       const menu = await this.prisma.menu.findUnique({
-        where: { id: menuId },
+        where: { id },
         include: {
-          restaurant: {
-            select: {
-              id: true,
-              name: true,
-              user: {
-                select: {
-                  id: true,
-                  firstName: true,
-                  lastName: true
-                }
-              }
-            }
-          },
-          items: {
-            include: {
-              item: true
-            }
-          }
+          restaurant: true,
+          items: { include: { item: true } }
         }
       });
-
-      if (!menu) {
-        return {
-          success: false,
-          message: 'Menu not found'
-        };
-      }
-
-      return {
-        success: true,
-        menu
-      };
+      if (!menu) return { success: false, message: 'Menu not found' };
+      return { success: true, menu };
     } catch (error) {
       console.error('Error fetching menu:', error);
       throw error;
@@ -402,53 +355,72 @@ class RestaurantService extends DatabaseService {
   }
 
   /**
-   * Delete a menu
+   * Update a menu by ID
+   * @param {number} menuId
+   * @param {object} menuData { name, description, price }
+   */
+  async updateMenu(menuId, menuData) {
+    try {
+      const id = typeof menuId === 'string' ? parseInt(menuId) : menuId;
+      const menu = await this.prisma.menu.update({
+        where: { id },
+        data: menuData
+      });
+      return { success: true, menu };
+    } catch (error) {
+      console.error('Error updating menu:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a menu by ID
+   * @param {number} menuId
    */
   async deleteMenu(menuId) {
     try {
-      // First remove all menu items
-      await this.prisma.menuItem.deleteMany({
-        where: { menuId }
-      });
-
-      // Then delete the menu
-      await this.prisma.menu.delete({
-        where: { id: menuId }
-      });
-
-      return {
-        success: true,
-        message: 'Menu deleted successfully'
-      };
+      const id = typeof menuId === 'string' ? parseInt(menuId) : menuId;
+      await this.prisma.menu.delete({ where: { id } });
+      return { success: true, message: 'Menu deleted' };
     } catch (error) {
       console.error('Error deleting menu:', error);
       throw error;
     }
   }
 
-  // ============ ITEM OPERATIONS ============
-
   /**
-   * Create a new item
+   * Create an item for a restaurant (optionally add to menu)
+   * @param {number} restaurantId
+   * @param {object} itemData { itemId, name, price, status, imageUrl }
+   * @param {number|null} menuId
    */
-  async createItem(itemData) {
-    const { itemId, name, price, status = 'available', imageUrl = '' } = itemData;
-
+  async createItem(restaurantId, itemData, menuId = null) {
     try {
+      const restaurantIdInt = typeof restaurantId === 'string' ? parseInt(restaurantId) : restaurantId;
+      const { itemId, name, price, status, imageUrl } = itemData;
+      if (!itemId || !name || typeof price !== 'number' || !status) {
+        throw new Error('itemId, name, price, and status are required');
+      }
       const item = await this.prisma.items.create({
         data: {
           itemId,
           name,
+          restaurantId: restaurantIdInt,
           price,
           status,
           imageUrl
         }
       });
-
-      return {
-        success: true,
-        item
-      };
+      if (menuId) {
+        const menuIdInt = typeof menuId === 'string' ? parseInt(menuId) : menuId;
+        await this.prisma.menuItem.create({
+          data: {
+            menuId: menuIdInt,
+            itemId: item.id
+          }
+        });
+      }
+      return { success: true, item };
     } catch (error) {
       console.error('Error creating item:', error);
       throw error;

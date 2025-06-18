@@ -2,7 +2,7 @@
 import prisma from '../src/config/dbConnection.js';
 import RestaurantInfo from "../../Databases/mongo/models/restaurant.js";
 import bcrypt from 'bcrypt';
- 
+ import { Prisma } from '@prisma/client';
 
 
 class DataAccess {
@@ -38,7 +38,7 @@ class DataAccess {
                     
                     // Save restaurant location data to MongoDB
                     const RestaurantInfo = new this.RestaurantInfo({
-                        restaurantId: newRestaurant.id,
+                        restaurantId: newUser.id,
                         latitude: restaurantLat ? parseFloat(restaurantLat) : null,
                         longitude: restaurantLong ? parseFloat(restaurantLong) : null,
                         address: restaurantAddress,

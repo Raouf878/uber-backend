@@ -1,5 +1,3 @@
-
-
 class DatabaseService {
     constructor() {
         if (this.constructor === DatabaseService) {
@@ -14,6 +12,9 @@ class DatabaseService {
     async getRestaurant(restaurantId) {
         throw new Error("Method 'getRestaurant()' must be implemented.");
     }
+    async getUserRestaurants(userId) {
+        throw new Error("Method 'getUserRestaurants()' must be implemented.");
+    }
     async getAllRestaurants() {
         throw new Error("Method 'getAllRestaurants()' must be implemented.");
     }
@@ -26,16 +27,16 @@ class DatabaseService {
     async createMenu(restaurantId, menuData) {
         throw new Error("Method 'createMenu()' must be implemented.");
     }
-    async getMenu(restaurantId) {
+    async getMenu(menuId) {
         throw new Error("Method 'getMenu()' must be implemented.");
     }
-    async updateMenu(restaurantId, menuId, menuData) {
+    async updateMenu(menuId, menuData) {
         throw new Error("Method 'updateMenu()' must be implemented.");
     }
-    async deleteMenu(restaurantId, menuId) {
+    async deleteMenu(menuId) {
         throw new Error("Method 'deleteMenu()' must be implemented.");
     }
-    async createItem(restaurantId, menuId, itemData) {
+    async createItem(restaurantId, itemData, menuId = null) {
         throw new Error("Method 'createItem()' must be implemented.");
     }
     async getAllItems(options={}) {
