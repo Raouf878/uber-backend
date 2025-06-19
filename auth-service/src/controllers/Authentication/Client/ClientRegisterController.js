@@ -88,6 +88,8 @@ export const LoginClient = async (req, res) => {
     try {
 
         const { email, password } = req.body;
+        console.log('Received login request:', req.body);
+        
 
         if (!email || !password) {
             return res.status(400).json({ success: false, message: 'Please provide email and password.' });
@@ -123,6 +125,7 @@ export const LoginClient = async (req, res) => {
             data: {
                 user: userWithoutPassword,
                 expiresIn: process.env.JWT_EXPIRES_IN || '1h',
+                token: token,
             },
         });
 

@@ -42,3 +42,51 @@ export const authorize = (roles = []) => {
     next();
   };
 };
+
+export const validateUserOwnership = (req, res, next) => {
+  try {
+    const targetUserId = parseInt(req.params.id);
+    const currentUserId = req.user.id;
+    const userRole = req.user.role;
+
+    // Allow if user is accessing their own data or is admin
+    if (currentUserId === targetUserId || userRole === 'admin') {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. You can only access your own profile'
+    });
+  } catch (error) {
+    console.error('User ownership validation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to validate user ownership'
+    });
+  }
+};
+
+export const validateAdminOrSelf = (req, res, next) => {
+  try {
+    const targetUserId = parseInt(req.params.id);
+    const currentUserId = req.user.id;
+    const userRole = req.user.role;
+
+    // Allow if admin or accessing own data
+    if (userRole === 'admin' || currentUserId === targetUserId) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Admin privileges or own profile access required'
+    });
+  } catch (error) {
+    console.error('Admin or self validation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to validate permissions'
+    });
+  }
+};

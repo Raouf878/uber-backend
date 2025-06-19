@@ -244,23 +244,21 @@ export const createMenu = async (req, res) => {
       });
     }
   }
-
   // ============ ITEM CONTROLLERS ============
   /**
    * Create a new item
    * POST /api/restaurants/:restaurantId/items
-   * or POST /api/restaurants/:restaurantId/menus/:menuId/items
    */
   export const createItem = async (req, res) => {
     try {
-      const { restaurantId, menuId } = req.params;
-      const itemData = req.body;
+      const { restaurantId } = req.params;
+      const data = req.body;
 
       // Validation
-      if (!itemData.itemId || !itemData.name || itemData.price === undefined) {
+      if (!data.name || data.price === undefined) {
         return res.status(400).json({
           success: false,
-          message: 'itemId, name, and price are required'
+          message: 'name and price are required'
         });
       }
 
@@ -271,9 +269,14 @@ export const createMenu = async (req, res) => {
         });
       }
 
+      // Add restaurantId to the data
+      const itemData = {
+        ...data,
+        restaurantId: parseInt(restaurantId)
+      };
+
       const result = await restaurantService.createItem(
         parseInt(restaurantId), 
-        menuId ? parseInt(menuId) : null, 
         itemData
       );
       

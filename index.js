@@ -40,7 +40,7 @@ app.use(helmet({
 const services = {
     auth: process.env.AUTH_SERVICE_URL || "http://localhost:3001/auth",
     payment: process.env.PAYMENT_SERVICE_URL || "http://localhost:3002",
-    order: process.env.ORDER_SERVICE_URL || "http://localhost:3003",
+    orderservice: process.env.ORDER_SERVICE_URL || "http://localhost:3006/orderservice",
     userService: process.env.USER_SERVICE_URL || "http://localhost:3004",
     RestaurantService: process.env.RESTAURANT_SERVICE_URL || "http://localhost:3005/crameats",
     DeliveryService: process.env.DELIVERY_SERVICE_URL || "http://localhost:3006",
@@ -157,7 +157,7 @@ app.use((req, res, next) => {
 // Setup proxy routes
 app.use("/auth", createSimpleProxy(services.auth, 'auth'));
 app.use("/payment", createSimpleProxy(services.payment, 'payment'));
-app.use("/order", createSimpleProxy(services.order, 'order'));
+app.use("/orderservice", createSimpleProxy(services.orderservice, 'orderservice'));
 app.use("/user", createSimpleProxy(services.userService, 'user'));
 app.use("/crameats", createSimpleProxy(services.RestaurantService, 'RestaurantService'));
 app.use("/delivery", createSimpleProxy(services.DeliveryService, 'delivery'));

@@ -23,8 +23,14 @@ import {
   bulkAddItemsToMenu,
   bulkRemoveItemsFromMenu,
   updateMenu
-
 } from '../controllers/RestaurantController.js';
+import { 
+  authenticateToken, 
+  authorize, 
+  validateRestaurantOwnership, 
+  validateMenuOwnership, 
+  validateItemOwnership 
+} from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -35,34 +41,111 @@ router.use((req, res, next) => {
 });
 
 // Restaurant routes
-router.post('/restaurants', createRestaurant);
-router.get('/get/restaurants', getAllRestaurants);
-router.get('/restaurants/:id', getRestaurant);
-router.get('/users/:userId/restaurants', getUserRestaurants);
-router.put('/restaurants/:id/location', updateRestaurantLocation);
-router.delete('/restaurants/:id', deleteRestaurant);
+router.post('/restaurants', 
+  authenticateToken, 
+  authorize(['restaurant_owner', 'admin']), 
+  createRestaurant
+);
+
+router.get('/get/restaurants', getAllRestaurants); // Public route for browsing
+
+router.get('/restaurants/:id', getRestaurant); // Public route for viewing
+
+router.get('/users/:userId/restaurants', 
+  authenticateToken, 
+  getUserRestaurants
+);
+
+router.put('/restaurants/:id/location', 
+  authenticateToken, 
+  validateRestaurantOwnership, 
+  updateRestaurantLocation
+);
+
+router.delete('/restaurants/:id', 
+  authenticateToken, 
+  validateRestaurantOwnership, 
+  deleteRestaurant
+);
 
 // Menu routes
-router.post('/restaurants/:restaurantId/menus', createMenu);
-router.get('/menus/:menuId', getMenu);
-router.put('/menus/:menuId', updateMenu);
-router.delete('/menus/:menuId', deleteMenu);
+router.post('/restaurants/:restaurantId/menus', 
+  authenticateToken, 
+  validateRestaurantOwnership, 
+  createMenu
+);
+
+router.get('/menus/:menuId', getMenu); // Public route
+
+router.put('/menus/:menuId', 
+  authenticateToken, 
+  validateMenuOwnership, 
+  updateMenu
+);
+
+router.delete('/menus/:menuId', 
+  authenticateToken, 
+  validateMenuOwnership, 
+  deleteMenu
+);
 
 // Item routes
-router.post('/restaurants/:restaurantId/items', createItem); // create item for restaurant
-router.post('/restaurants/:restaurantId/menus/:menuId/items', (req, res) => createItem(req, res, true)); // create item and add to menu
-router.get('/items', getAllItems);
-router.get('/items/:itemId', getItem);
-router.put('/items/:itemId', updateItem);
-router.delete('/items/:itemId', deleteItem);
+router.post('/restaurants/:restaurantId/items', 
+  authenticateToken, 
+  validateRestaurantOwnership, 
+  createItem
+);
+
+router.post('/restaurants/:restaurantId/menus/:menuId/items', 
+  authenticateToken, 
+  validateRestaurantOwnership, 
+  (req, res) => createItem(req, res, true)
+);
+
+router.get('/items', getAllItems); // Public route
+
+router.get('/items/:itemId', getItem); // Public route
+
+router.put('/items/:itemId', 
+  authenticateToken, 
+  validateItemOwnership, 
+  updateItem
+);
+
+router.delete('/items/:itemId', 
+  authenticateToken, 
+  validateItemOwnership, 
+  deleteItem
+);
 
 // Menu-Item relationship routes
-router.post('/menus/:menuId/items/:itemId', addItemToMenu);
-router.delete('/menus/:menuId/items/:itemId', removeItemFromMenu);
-router.get('/menus/:menuId/items', getMenuItems);
-router.post('/menus/:menuId/items/bulk-add', bulkAddItemsToMenu);
-router.delete('/menus/:menuId/items/bulk-remove', bulkRemoveItemsFromMenu);
+router.post('/menus/:menuId/items/:itemId', 
+  authenticateToken, 
+  validateMenuOwnership, 
+  addItemToMenu
+);
 
+router.delete('/menus/:menuId/items/:itemId', 
+  authenticateToken, 
+  validateMenuOwnership, 
+  removeItemFromMenu
+);
+
+router.get('/menus/:menuId/items', getMenuItems); // Public route
+
+router.post('/menus/:menuId/items/bulk-add', 
+  authenticateToken, 
+  validateMenuOwnership, 
+  bulkAddItemsToMenu
+);
+
+router.delete('/menus/:menuId/items/bulk-remove', 
+  authenticateToken, 
+  validateMenuOwnership, 
+  bulkRemoveItemsFromMenu
+);
+
+// Test route - no auth required
 router.get('/test-mongo', async (req, res) => {
   try {
     const count = await RestaurantInfo.countDocuments();
