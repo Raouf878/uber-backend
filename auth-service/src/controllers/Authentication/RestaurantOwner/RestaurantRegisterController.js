@@ -6,12 +6,12 @@ import { generateToken } from '../helper/JWTgenerate.js';
 import { Prisma } from '@prisma/client';
 import DataAccess from '../../../../data-layer/DataAccess.js';
 
-export class RestaurantAuthController{
 
-    constructor(){
-        this.RestaurantAuthController = new DataAccess();
-    }
-    RegisterRestaurantOwner =asyncHandler(async (req, res) => {
+const dataAccess = new DataAccess();
+
+
+    
+export const RegisterRestaurant =async (req, res) => {
     const { firstName, lastName, email, password, role, restaurantName, restaurantLat, restaurantLong, restaurantAddress } = req.body;
     console.log(email, password, role, firstName, lastName, restaurantName, restaurantAddress, restaurantLat, restaurantLong);
     
@@ -53,7 +53,7 @@ export class RestaurantAuthController{
         return res.status(409).json({ success: false, message: `User with email ${email} already exists as a ${role}.` });
     }
 
-   const result = await this.RestaurantAuthController.RegisterRestaurant(req.body);
+   const result = await dataAccess.RegisterRestaurant(req.body);
 
     const token = generateToken(result.user.id, result.user.email, result.user.role);
 
@@ -98,9 +98,9 @@ export class RestaurantAuthController{
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
-})
+}
 
- async LoginRestaurantOwner(req, res) {
+ export const LoginRestaurantOwner = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -153,4 +153,3 @@ export class RestaurantAuthController{
 };
 
 
-}

@@ -1,11 +1,15 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-require('dotenv').config();
+import express from "express";
+import { createServer } from "http";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import dotenv from "dotenv";
+import DeliveryRoutes from './src/routes/deliveries.js';
+
+dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3006;
+const PORT = process.env.PORT_DELIVERY || 3007;
 
 // Middleware
 app.use(helmet());
@@ -20,16 +24,26 @@ app.get('/health', (req, res) => {
     service: 'delivery-service',
     status: 'OK',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    port: PORT
   });
 });
 
-// API routes
-app.get('/api/${service_name//-service/}', (req, res) => {
+// Main delivery routes
+app.use('/deliveryservice', DeliveryRoutes);
+
+// API info endpoint
+app.get('/api/delivery', (req, res) => {
   res.json({
     message: 'delivery-service is running!',
     service: 'delivery-service',
-    version: '1.0.0'
+    version: '1.0.0',
+    endpoints: {
+      deliveries: '/deliveryservice/deliveries',
+      availableOrders: '/deliveryservice/orders/available',
+      driverDeliveries: '/deliveryservice/drivers/:userId/deliveries',
+      stats: '/deliveryservice/stats'
+    }
   });
 });
 
@@ -46,12 +60,25 @@ app.use((err, req, res, next) => {
 app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Route not found',
-    path: req.originalUrl
+    path: req.originalUrl,
+    availableEndpoints: [
+      'GET /health',
+      'GET /api/delivery',
+      'GET /deliveryservice/deliveries',
+      'GET /deliveryservice/orders/available',
+      'POST /deliveryservice/orders/:orderId/accept',
+      'PUT /deliveryservice/deliveries/:id/status',
+      'GET /deliveryservice/stats'
+    ]
   });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`delivery-service running on port ${PORT}`);
+const server = createServer(app);
+
+server.listen(PORT, () => {
+  console.log(`🚚 Delivery service running on port ${PORT}`);
+  console.log(`📍 Health check: http://localhost:${PORT}/health`);
+  console.log(`📊 API info: http://localhost:${PORT}/api/delivery`);
 });
 
-module.exports = app;
+export default app;

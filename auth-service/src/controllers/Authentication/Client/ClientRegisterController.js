@@ -4,8 +4,10 @@ import jwt from 'jsonwebtoken';
 import prisma from '../../../config/dbConnection.js';
 import { generateToken } from '../helper/JWTgenerate.js';
 import { Prisma } from '@prisma/client';
+import DataAccess from '../../../../data-layer/DataAccess.js';
 
 import express from 'express';
+const dataAccess = new DataAccess();
  
 
 export const RegisterClient = async (req, res) => {
@@ -45,7 +47,7 @@ export const RegisterClient = async (req, res) => {
         const passwordHash = await bcrypt.hash(password, salt);
 
         // 4. Create New User
-        
+        const newUser = await dataAccess.RegisterClient(req.body);
         const token = generateToken(newUser.id, newUser.email, newUser.role);
 
         res.cookie('token', token, {
@@ -86,6 +88,8 @@ export const LoginClient = async (req, res) => {
     try {
 
         const { email, password } = req.body;
+        console.log('Received login request:', req.body);
+        
 
         if (!email || !password) {
             return res.status(400).json({ success: false, message: 'Please provide email and password.' });
@@ -121,6 +125,7 @@ export const LoginClient = async (req, res) => {
             data: {
                 user: userWithoutPassword,
                 expiresIn: process.env.JWT_EXPIRES_IN || '1h',
+                token: token,
             },
         });
 

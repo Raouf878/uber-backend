@@ -1,5 +1,5 @@
-const request = require('supertest');
-const app = require('../src/app');
+import request from 'supertest';
+import app from '../app.js';
 
 describe('order-service', () => {
   describe('GET /health', () => {
@@ -14,14 +14,25 @@ describe('order-service', () => {
     });
   });
 
-  describe('GET /api/${service_name//-service/}', () => {
-    it('should return service information', async () => {
+  describe('GET /crameats/test-db', () => {
+    it('should test database connection', async () => {
       const response = await request(app)
-        .get('/api/${service_name//-service/}')
+        .get('/crameats/test-db')
         .expect(200);
 
       expect(response.body).toHaveProperty('service', 'order-service');
-      expect(response.body).toHaveProperty('version');
+      expect(response.body).toHaveProperty('dbWorking');
+    });
+  });
+
+  describe('Order endpoints', () => {
+    it('should get all orders with pagination', async () => {
+      const response = await request(app)
+        .get('/crameats/orders')
+        .expect(200);
+
+      expect(response.body).toHaveProperty('orders');
+      expect(response.body).toHaveProperty('pagination');
     });
   });
 });
