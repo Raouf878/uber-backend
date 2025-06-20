@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL
+      url:"postgresql://postgres:Aliki211112@uberclonedb.c3i2i48w2k27.ap-northeast-1.rds.amazonaws.com:5432/uberclonedb?schema=public"
     }
   }
 });
