@@ -7,8 +7,10 @@ import bcrypt from 'bcrypt';
  import connectDB from '../src/config/mongoDb.js';
 
 
+
 class DataAccess extends DatabaseService {
     constructor(){
+        console.log('DataAccess constructor called from:', new Error().stack);console.log('DataAccess constructor called from:', new Error().stack);
         super();
         this.prisma = prisma;
         this.RestaurantInfo = RestaurantInfo;
