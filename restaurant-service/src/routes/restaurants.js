@@ -72,7 +72,6 @@ router.delete('/restaurants/:id',
 // Menu routes
 router.post('/restaurants/:restaurantId/menus', 
   authenticateToken, 
-  validateRestaurantOwnership,
   upload.single('image'),
   createMenu
 );

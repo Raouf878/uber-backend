@@ -37,6 +37,7 @@ model Menu {
   name         String
   description  String
   price        Float
+  imageUrl     String?     // Optional image URL for menu item
   items        MenuItem[]
   orderMenus   OrderMenu[]
 }
@@ -71,8 +72,6 @@ model Order {
   orderMenus        OrderMenu[]
   delivery          Delivery?   // One-to-one: current active delivery
   payments          Payment[]
-
-  @@map("order")
 }
 
 model OrderItem {
@@ -113,12 +112,14 @@ model Payment {
 }
 
 model Delivery {
-  id           Int      @id @default(autoincrement())
-  orderId      Int
-  order        Order    @relation(fields: [orderId], references: [id])
-  userId       Int
-  user         User     @relation(fields: [userId], references: [id])
-  status       String
-  pickupTime   DateTime
-  deliveryTime DateTime
+  id              Int       @id @default(autoincrement())
+  orderId         Int       @unique // One delivery record per order
+  order           Order     @relation(fields: [orderId], references: [id])
+  deliveryPersonId Int      // User ID of delivery person
+  deliveryPerson  User      @relation(fields: [deliveryPersonId], references: [id])
+  status          String    // ASSIGNED, PICKED_UP, IN_TRANSIT, DELIVERED, CANCELLED
+  assignedAt      DateTime  @default(now())
+  pickedUpAt      DateTime?
+  deliveredAt     DateTime?
+  notes           String?   // Optional delivery notes
 }

@@ -308,23 +308,39 @@ class RestaurantService extends DatabaseService {
   /**
    * Create a new menu for a restaurant
    * @param {number} restaurantId
-   * @param {object} menuData { name, description, price }
+   * @param {object} menuData { name, description, price, imageUrl }
    */
   async createMenu(restaurantId, menuData) {
     try {
       const id = typeof restaurantId === 'string' ? parseInt(restaurantId) : restaurantId;
-      const { name, description, price } = menuData;
+      const { name, description, price, imageUrl } = menuData;
+      
+      console.log('=== DATA ACCESS createMenu ===');
+      console.log('Restaurant ID:', id);
+      console.log('Menu data received:', menuData);
+      console.log('Extracted imageUrl:', imageUrl);
+      
       if (!name || !description || typeof price !== 'number') {
         throw new Error('Menu name, description, and price are required');
       }
+      
+      const createData = {
+        restaurantId: id,
+        name,
+        description,
+        price,
+        imageUrl: imageUrl || null
+      };
+      
+      console.log('Data being sent to Prisma:', createData);
+      
       const menu = await this.prisma.menu.create({
-        data: {
-          restaurantId: id,
-          name,
-          description,
-          price
-        }
+        data: createData
       });
+      
+      console.log('Menu created in database:', menu);
+      console.log('=== END DATA ACCESS createMenu ===');
+      
       return { success: true, menu };
     } catch (error) {
       console.error('Error creating menu:', error);

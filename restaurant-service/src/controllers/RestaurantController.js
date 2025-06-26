@@ -2,6 +2,8 @@ import RestaurantService from '../../data-layer/DataAccess.js';
 import multer from 'multer';
 import AWS from 'aws-sdk';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
+import path from 'path';
 
 export const upload = multer({
   storage: multer.memoryStorage(),
@@ -34,8 +36,7 @@ export const createRestaurant = async (req, res) => {
         Bucket: process.env.S3_BUCKET_NAME,
         Key: fileName,
         Body: imageFile.buffer,
-        ContentType: imageFile.mimetype,
-        ACL: 'public-read'
+        ContentType: imageFile.mimetype
       };
 
       const uploadResult = await s3.upload(uploadParams).promise();
@@ -152,26 +153,204 @@ export const deleteRestaurant = async (req, res) => {
 export const createMenu = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    const { name, description, price } = req.body;
+    const { name, description, price, imageUrl } = req.body;
+
+    // Debug logging
+    console.log('=== CREATE MENU DEBUG ===');
+    console.log('Request body:', req.body);
+    console.log('Extracted imageUrl:', imageUrl);
+    console.log('Request file:', req.file);
+    console.log('S3 Config:', {
+      bucket: process.env.S3_BUCKET_NAME,
+      region: process.env.AWS_REGION,
+      hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
+      hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY
+    });
+
+    let finalImageUrl = imageUrl || null;
+
+    // If imageUrl is a local file path, read the file and upload to S3
+    if (imageUrl && !imageUrl.startsWith('http') && (imageUrl.includes('/') || imageUrl.includes('\\'))) {
+      console.log('🔍 Local file path detected, reading file and uploading to S3...');
+      console.log('Local file path:', imageUrl);
+      console.log('📍 ENTERING LOCAL FILE PATH BRANCH');
+
+      try {
+        // Check if file exists
+        if (!fs.existsSync(imageUrl)) {
+          console.error('❌ File not found:', imageUrl);
+          finalImageUrl = null;
+        } else {
+          // Read the file
+          const fileBuffer = fs.readFileSync(imageUrl);
+          const fileExtension = path.extname(imageUrl).toLowerCase();
+          const fileName = `menus/${uuidv4()}/${uuidv4()}${fileExtension}`;
+          
+          // Determine content type based on extension
+          const contentTypeMap = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.webp': 'image/webp',
+            '.gif': 'image/gif'
+          };
+          const contentType = contentTypeMap[fileExtension] || 'image/jpeg';
+
+          console.log('📁 File read successfully:');
+          console.log(`   - File size: ${(fileBuffer.length / 1024).toFixed(2)} KB`);
+          console.log(`   - Extension: ${fileExtension}`);
+          console.log(`   - Content type: ${contentType}`);
+
+          console.log('S3 upload parameters:', {
+            bucket: process.env.S3_BUCKET_NAME,
+            key: fileName,
+            contentType: contentType
+          });
+
+          // Note: ACL removed because many S3 buckets disable ACLs by default
+          // If you need public access, configure bucket policy instead
+          const uploadParams = {
+            Bucket: process.env.S3_BUCKET_NAME,
+            Key: fileName,
+            Body: fileBuffer,
+            ContentType: contentType
+          };
+
+          console.log('Starting S3 upload from local file...');
+          const uploadResult = await s3.upload(uploadParams).promise();
+          
+          console.log('✅ S3 upload from local file successful!');
+          console.log('S3 upload result:', {
+            location: uploadResult.Location,
+            bucket: uploadResult.Bucket,
+            key: uploadResult.Key,
+            etag: uploadResult.ETag
+          });
+
+          finalImageUrl = uploadResult.Location;
+          
+          console.log('📸 Local file processing complete:');
+          console.log(`   - Original path: ${imageUrl}`);
+          console.log(`   - File size: ${(fileBuffer.length / 1024).toFixed(2)} KB`);
+          console.log(`   - S3 location: ${uploadResult.Location}`);
+          console.log(`   - S3 bucket: ${uploadResult.Bucket}`);
+          console.log(`   - S3 key: ${uploadResult.Key}`);
+          console.log(`   - Content type: ${contentType}`);
+          console.log(`   - ETag: ${uploadResult.ETag}`);
+          console.log('🔗 Final image URL set to:', finalImageUrl);
+        }
+      } catch (localFileError) {
+        console.error('❌ Failed to process local file:', localFileError);
+        console.error('Local file error details:', {
+          message: localFileError.message,
+          code: localFileError.code,
+          path: imageUrl
+        });
+        finalImageUrl = null;
+      }
+    }
+    // If image was uploaded via multipart form, upload to S3
+    else if (req.file) {
+      console.log('File upload detected, uploading to S3...');
+      console.log('File info:', {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
+
+      try {
+        const extension = req.file.originalname.split('.').pop();
+        const fileName = `menus/${uuidv4()}/${uuidv4()}.${extension}`;
+        
+        console.log('S3 upload parameters:', {
+          bucket: process.env.S3_BUCKET_NAME,
+          key: fileName,
+          contentType: req.file.mimetype
+        });
+
+        const uploadParams = {
+          Bucket: process.env.S3_BUCKET_NAME,
+          Key: fileName,
+          Body: req.file.buffer,
+          ContentType: req.file.mimetype
+        };
+
+        console.log('Starting S3 upload...');
+        const uploadResult = await s3.upload(uploadParams).promise();
+        
+        console.log('✅ S3 upload successful!');
+        console.log('S3 upload result:', {
+          location: uploadResult.Location,
+          bucket: uploadResult.Bucket,
+          key: uploadResult.Key,
+          etag: uploadResult.ETag
+        });
+
+        finalImageUrl = uploadResult.Location;
+        
+        console.log('📸 Image processing complete:');
+        console.log(`   - Original file: ${req.file.originalname}`);
+        console.log(`   - File size: ${(req.file.size / 1024).toFixed(2)} KB`);
+        console.log(`   - S3 location: ${uploadResult.Location}`);
+        console.log(`   - S3 bucket: ${uploadResult.Bucket}`);
+        console.log(`   - S3 key: ${uploadResult.Key}`);
+        console.log(`   - Content type: ${req.file.mimetype}`);
+        console.log(`   - ETag: ${uploadResult.ETag}`);
+        console.log('🔗 Final image URL set to:', finalImageUrl);
+      } catch (s3Error) {
+        console.error('S3 upload failed:', s3Error);
+        console.error('S3 error details:', {
+          code: s3Error.code,
+          message: s3Error.message,
+          statusCode: s3Error.statusCode
+        });
+        // Continue with menu creation even if S3 upload fails
+        finalImageUrl = null;
+      }
+    }
 
     const menuData = {
       name,
       description,
-      price
+      price: parseFloat(price),
+      imageUrl: finalImageUrl
     };
 
-      const result = await restaurantService.createMenu(parseInt(restaurantId), menuData);
+    console.log('Final menuData before database save:', menuData);
+
+    const result = await restaurantService.createMenu(parseInt(restaurantId), menuData);
+    
+    console.log('💾 Menu creation result:', result);
+    
+    if (result.success) {
+      console.log('🎉 MENU CREATED SUCCESSFULLY!');
+      console.log(`   - Menu ID: ${result.menu.id}`);
+      console.log(`   - Menu Name: ${result.menu.name}`);
+      console.log(`   - Restaurant ID: ${result.menu.restaurantId}`);
+      console.log(`   - Price: $${result.menu.price}`);
+      console.log(`   - Image URL: ${result.menu.imageUrl || 'No image'}`);
       
-      res.status(201).json(result);
-    } catch (error) {
-      console.error('Error in createMenu controller:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to create menu',
-        error: error.message
-      });
+      if (result.menu.imageUrl && result.menu.imageUrl.includes('amazonaws.com')) {
+        console.log('📷 Image successfully uploaded to S3 and saved in database!');
+      } else if (result.menu.imageUrl) {
+        console.log('🔗 Image URL provided and saved in database!');
+      } else {
+        console.log('ℹ️  Menu created without image');
+      }
     }
+    
+    console.log('=== END CREATE MENU DEBUG ===');
+      
+    res.status(201).json(result);
+  } catch (error) {
+    console.error('Error in createMenu controller:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create menu',
+      error: error.message
+    });
   }
+}
 
   /**
    * Get all menus for a restaurant

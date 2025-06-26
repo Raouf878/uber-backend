@@ -156,6 +156,20 @@ export const LoginRestaurantOwner = asyncHandler(async (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid password.' });
         }
 
+        // Get restaurant ID if user is a restaurant owner
+        let restaurantId = null;
+        if (user.role === 'RESTAURANT_OWNER') {
+            const restaurant = await prisma.restaurant.findFirst({
+                where: {
+                    userId: user.id,
+                },
+                select: {
+                    id: true,
+                }
+            });
+            restaurantId = restaurant ? restaurant.id : null;
+        }
+
         const token = generateToken(user.id, user.email, user.role);
 
         res.cookie('token', token, {
@@ -165,19 +179,26 @@ export const LoginRestaurantOwner = asyncHandler(async (req, res) => {
             maxAge: parseInt(process.env.JWT_COOKIE_EXPIRES_IN_DAYS) * 24 * 60 * 60 * 1000,
         });
 
+        const responseData = {
+            user: {
+                id: user.id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                role: user.role
+            },
+            token
+        };
+
+        // Add restaurant ID to response if user is a restaurant owner
+        if (user.role === 'RESTAURANT_OWNER' && restaurantId) {
+            responseData.restaurantId = restaurantId;
+        }
+
         res.status(200).json({
             success: true,
             message: 'Login successful.',
-            data: {
-                user: {
-                    id: user.id,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    email: user.email,
-                    role: user.role
-                },
-                token
-            }
+            data: responseData
         });
     } catch (error) {
         console.error('Login error:', error);
