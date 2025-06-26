@@ -13,6 +13,7 @@ import {
   deleteMenu,
   getMenuStats,
   createItem,
+  upload,
   getAllItems,
   getItem,
   updateItem,
@@ -71,7 +72,8 @@ router.delete('/restaurants/:id',
 // Menu routes
 router.post('/restaurants/:restaurantId/menus', 
   authenticateToken, 
-  validateRestaurantOwnership, 
+  validateRestaurantOwnership,
+  upload.single('image'),
   createMenu
 );
 

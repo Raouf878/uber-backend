@@ -1,12 +1,50 @@
 import RestaurantService from '../../data-layer/DataAccess.js';
+import multer from 'multer';
+import AWS from 'aws-sdk';
+import { v4 as uuidv4 } from 'uuid';
+
+export const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG, PNG, and WEBP images are allowed.'));
+    }
+  }
+});
 
 // Initialize the restaurant service
+const s3 = new AWS.S3();
 const restaurantService = new RestaurantService();
 
 // Create a new restaurant
 export const createRestaurant = async (req, res) => {
   try {
-    const result = await restaurantService.createRestaurant(req.body);
+    const imageFile = req.file; // comes from multer
+    let imageUrl = null;
+
+    // Upload image to S3
+    if (imageFile) {
+      const extension = imageFile.originalname.split('.').pop();
+      const fileName = `restaurants/${uuidv4()}/${uuidv4()}.${extension}`;
+      const uploadParams = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: fileName,
+        Body: imageFile.buffer,
+        ContentType: imageFile.mimetype,
+        ACL: 'public-read'
+      };
+
+      const uploadResult = await s3.upload(uploadParams).promise();
+      imageUrl = uploadResult.Location;
+    }
+    const result = await restaurantService.createRestaurant({
+      ...req.body,
+      imageUrl
+    });
     res.status(201).json(result);
   } catch (error) {
     console.error('Create restaurant error:', error);

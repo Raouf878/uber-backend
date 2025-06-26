@@ -1,0 +1,98 @@
+version: "3.9"
+
+services:
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - MONGO_URI=${MONGO_URI}
+      - POSTGRES_URI=${POSTGRES_URI}
+
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - POSTGRES_URI=${POSTGRES_URI}
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - MONGO_URI=${MONGO_URI}
+      - POSTGRES_URI=${POSTGRES_URI}
+
+  user-service:
+    build: ./user-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+      - MONGO_URI=${MONGO_URI}
+      - POSTGRES_URI=${POSTGRES_URI}
+
+  restaurant-service:
+    build: ./restaurant-service
+    ports:
+      - "3005:3005"
+    environment:
+      - PORT=3005
+      - MONGO_URI=${MONGO_URI}
+      - POSTGRES_URI=${POSTGRES_URI}
+
+  delivery-service:
+    build: ./delivery-service
+    ports:
+      - "3006:3006"
+    environment:
+      - PORT=3006
+      - MONGO_URI=${MONGO_URI}
+      - POSTGRES_URI=${POSTGRES_URI}
+
+  location-service:
+    build: ./location-service
+    ports:
+      - "3007:3007"  # changed to avoid port conflict
+    environment:
+      - PORT=3007
+      - MONGO_URI=${MONGO_URI}
+      - POSTGRES_URI=${POSTGRES_URI}
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "3008:3008"
+    environment:
+      - PORT=3008
+      - MONGO_URI=${MONGO_URI}
+      - POSTGRES_URI=${POSTGRES_URI}
+
+  analytics-service:
+    build: ./analytics-service
+    ports:
+      - "3009:3009"
+    environment:
+      - PORT=3009
+      - MONGO_URI=${MONGO_URI}
+      - POSTGRES_URI=${POSTGRES_URI}
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - PAYMENT_SERVICE_URL=http://payment-service:3002
+      - ORDER_SERVICE_URL=http://order-service:3003
+      - USER_SERVICE_URL=http://user-service:3004
+      - RESTAURANT_SERVICE_URL=http://restaurant-service:3005
+      - DELIVERY_SERVICE_URL=http://delivery-service:3006
+      - LOCATION_SERVICE_URL=http://location-service:3007
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3008
+      - ANALYTICS_SERVICE_URL=http://analytics-service:3009
