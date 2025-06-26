@@ -4,7 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
-import DeliveryRoutes from './src/routes/deliveries.js';
+import deliveryRoutes from './src/routes/delivery.js';
 
 dotenv.config();
 
@@ -30,19 +30,22 @@ app.get('/health', (req, res) => {
 });
 
 // Main delivery routes
-app.use('/deliveryservice', DeliveryRoutes);
+app.use('/api/delivery', deliveryRoutes);
 
 // API info endpoint
-app.get('/api/delivery', (req, res) => {
+app.get('/api/info', (req, res) => {
   res.json({
     message: 'delivery-service is running!',
     service: 'delivery-service',
     version: '1.0.0',
     endpoints: {
-      deliveries: '/deliveryservice/deliveries',
-      availableOrders: '/deliveryservice/orders/available',
-      driverDeliveries: '/deliveryservice/drivers/:userId/deliveries',
-      stats: '/deliveryservice/stats'
+      register: 'POST /api/delivery/register',
+      availableOrders: 'GET /api/delivery/available-orders',
+      acceptDelivery: 'POST /api/delivery/accept-delivery',
+      scanQR: 'POST /api/delivery/scan-qr',
+      confirmDelivery: 'POST /api/delivery/confirm-delivery',
+      myOrders: 'GET /api/delivery/my-orders',
+      myStats: 'GET /api/delivery/my-stats'
     }
   });
 });

@@ -152,7 +152,13 @@ export const deleteRestaurant = async (req, res) => {
 export const createMenu = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    const menuData = req.body;
+    const { name, description, price } = req.body;
+
+    const menuData = {
+      name,
+      description,
+      price
+    };
 
       const result = await restaurantService.createMenu(parseInt(restaurantId), menuData);
       

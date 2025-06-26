@@ -246,7 +246,7 @@ class OrderService extends DatabaseService {
       }
 
       const [orders, totalCount] = await Promise.all([
-        this.prisma.order.findMany({
+        this.prisma.Order.findMany({
           where,
           skip,
           take,
@@ -359,7 +359,7 @@ class OrderService extends DatabaseService {
             timestamp: 'desc'
           }
         }),
-        this.prisma.order.count({ where })
+        this.prisma.Order.count({ where })
       ]);
 
       return {

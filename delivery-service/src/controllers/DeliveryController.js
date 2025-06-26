@@ -1,20 +1,460 @@
-import DeliveryService from '../../data-layer/DataAccess.js';
+import DeliveryDataAccess from '../../data-layer/DeliveryDataAccess.js';
 
-// Initialize the delivery service
-const deliveryService = new DeliveryService();
+class DeliveryController {
+    constructor() {
+        this.dataAccess = new DeliveryDataAccess();
+    }
 
-// Create a new delivery
-export const createDelivery = async (req, res) => {
-  try {
-    const result = await deliveryService.createDelivery(req.body);
-    res.status(201).json(result);
-  } catch (error) {
-    console.error('Create delivery error:', error);
-    res.status(400).json({
-      error: error.message || 'Failed to create delivery'
-    });
-  }
-};
+    async registerDeliveryPerson(req, res) {
+        try {
+            // Validate required fields
+            const { firstName, lastName, email, password } = req.body;
+            
+            if (!firstName || firstName.trim().length < 2) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'First name is required and must be at least 2 characters'
+                });
+            }
+
+            if (!lastName || lastName.trim().length < 2) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Last name is required and must be at least 2 characters'
+                });
+            }
+
+            if (!email || !this.isValidEmail(email)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Valid email is required'
+                });
+            }
+
+            if (!password || password.length < 6) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Password must be at least 6 characters'
+                });
+            }
+
+            // Prepare clean data for DataAccess
+            const cleanData = {
+                firstName: firstName.trim(),
+                lastName: lastName.trim(),
+                email: email.toLowerCase().trim(),
+                password: password,
+                role: 'DELIVERY_PERSON'
+            };
+
+            const result = await this.dataAccess.RegisterDeliveryPerson(cleanData);
+            
+            return res.status(201).json({
+                success: true,
+                message: 'Delivery person registered successfully',
+                data: {
+                    id: result.id,
+                    firstName: result.firstName,
+                    lastName: result.lastName,
+                    email: result.email,
+                    role: result.role
+                }
+            });
+        } catch (error) {
+            console.error('Error in DeliveryController.registerDeliveryPerson:', error);
+            
+            if (error.code === 'P2002') {
+                return res.status(409).json({
+                    success: false,
+                    message: 'A user with this email already exists'
+                });
+            }
+            
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async getAvailableOrders(req, res) {
+        try {
+            // Validate user authentication
+            if (!req.user || !req.user.id) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+            }
+
+            // Validate user role
+            if (req.user.role !== 'DELIVERY_PERSON') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Access denied. Delivery person role required'
+                });
+            }
+
+            const orders = await this.dataAccess.getAvailableOrdersForDelivery();
+            
+            return res.status(200).json({
+                success: true,
+                data: orders
+            });
+        } catch (error) {
+            console.error('Error in DeliveryController.getAvailableOrders:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async acceptDelivery(req, res) {
+        try {
+            // Validate authentication
+            if (!req.user || !req.user.id) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+            }
+
+            // Validate user role
+            if (req.user.role !== 'DELIVERY_PERSON') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Access denied. Delivery person role required'
+                });
+            }
+
+            // Validate request body
+            const { orderId } = req.body;
+            
+            if (!orderId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Order ID is required'
+                });
+            }
+
+            const parsedOrderId = parseInt(orderId);
+            const deliveryPersonId = parseInt(req.user.id);
+
+            if (isNaN(parsedOrderId) || parsedOrderId <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Valid order ID is required'
+                });
+            }
+
+            if (isNaN(deliveryPersonId)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid user ID'
+                });
+            }
+
+            const result = await this.dataAccess.acceptDeliveryOrder(deliveryPersonId, parsedOrderId);
+            
+            return res.status(200).json({
+                success: true,
+                message: 'Delivery accepted successfully',
+                data: result
+            });
+        } catch (error) {
+            console.error('Error in DeliveryController.acceptDelivery:', error);
+            
+            if (error.message.includes('not available')) {
+                return res.status(409).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+            
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async scanQRCode(req, res) {
+        try {
+            // Validate authentication
+            if (!req.user || !req.user.id) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+            }
+
+            // Validate user role
+            if (req.user.role !== 'DELIVERY_PERSON') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Access denied. Delivery person role required'
+                });
+            }
+
+            // Validate request body
+            const { orderId, qrCodeData } = req.body;
+            
+            if (!orderId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Order ID is required'
+                });
+            }
+
+            if (!qrCodeData || qrCodeData.trim().length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'QR code data is required'
+                });
+            }
+
+            const parsedOrderId = parseInt(orderId);
+            const deliveryPersonId = parseInt(req.user.id);
+
+            if (isNaN(parsedOrderId) || parsedOrderId <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Valid order ID is required'
+                });
+            }
+
+            if (isNaN(deliveryPersonId)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid user ID'
+                });
+            }
+
+            const cleanQRData = qrCodeData.trim();
+
+            const result = await this.dataAccess.updateOrderStatusAfterQRScan(
+                deliveryPersonId, 
+                parsedOrderId, 
+                cleanQRData
+            );
+            
+            return res.status(200).json({
+                success: true,
+                message: 'Order picked up from restaurant successfully',
+                data: result
+            });
+        } catch (error) {
+            console.error('Error in DeliveryController.scanQRCode:', error);
+            
+            if (error.message.includes('Order not found') || error.message.includes('Invalid QR code')) {
+                return res.status(404).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+            
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async confirmDeliveryWithCode(req, res) {
+        try {
+            // Validate authentication
+            if (!req.user || !req.user.id) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+            }
+
+            // Validate user role
+            if (req.user.role !== 'DELIVERY_PERSON') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Access denied. Delivery person role required'
+                });
+            }
+
+            // Validate request body
+            const { orderId, confirmationCode } = req.body;
+            
+            if (!orderId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Order ID is required'
+                });
+            }
+
+            if (!confirmationCode || confirmationCode.trim().length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Confirmation code is required'
+                });
+            }
+
+            const parsedOrderId = parseInt(orderId);
+            const deliveryPersonId = parseInt(req.user.id);
+
+            if (isNaN(parsedOrderId) || parsedOrderId <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Valid order ID is required'
+                });
+            }
+
+            if (isNaN(deliveryPersonId)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid user ID'
+                });
+            }
+
+            const cleanConfirmationCode = confirmationCode.trim();
+
+            const result = await this.dataAccess.confirmDeliveryWithClientCode(
+                deliveryPersonId, 
+                parsedOrderId, 
+                cleanConfirmationCode
+            );
+            
+            return res.status(200).json({
+                success: true,
+                message: 'Delivery confirmed successfully',
+                data: result
+            });
+        } catch (error) {
+            console.error('Error in DeliveryController.confirmDeliveryWithCode:', error);
+            
+            if (error.message.includes('Order not found') || error.message.includes('Invalid confirmation code')) {
+                return res.status(404).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+            
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async getMyOrders(req, res) {
+        try {
+            // Validate authentication
+            if (!req.user || !req.user.id) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+            }
+
+            // Validate user role
+            if (req.user.role !== 'DELIVERY_PERSON') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Access denied. Delivery person role required'
+                });
+            }
+
+            const deliveryPersonId = parseInt(req.user.id);
+            
+            if (isNaN(deliveryPersonId)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid user ID'
+                });
+            }
+
+            const orders = await this.dataAccess.getDeliveryPersonOrders(deliveryPersonId);
+            
+            return res.status(200).json({
+                success: true,
+                data: orders
+            });
+        } catch (error) {
+            console.error('Error in DeliveryController.getMyOrders:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async getMyStats(req, res) {
+        try {
+            // Validate authentication
+            if (!req.user || !req.user.id) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+            }
+
+            // Validate user role
+            if (req.user.role !== 'DELIVERY_PERSON') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Access denied. Delivery person role required'
+                });
+            }
+
+            const deliveryPersonId = parseInt(req.user.id);
+            const { dateFrom, dateTo } = req.query;
+            
+            if (isNaN(deliveryPersonId)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid user ID'
+                });
+            }
+
+            // Validate date formats if provided
+            if (dateFrom && isNaN(Date.parse(dateFrom))) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid dateFrom format'
+                });
+            }
+
+            if (dateTo && isNaN(Date.parse(dateTo))) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid dateTo format'
+                });
+            }
+
+            const options = {};
+            if (dateFrom) options.dateFrom = dateFrom;
+            if (dateTo) options.dateTo = dateTo;
+
+            const stats = await this.dataAccess.getDeliveryStats(deliveryPersonId, options);
+            
+            return res.status(200).json({
+                success: true,
+                data: stats
+            });
+        } catch (error) {
+            console.error('Error in DeliveryController.getMyStats:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    // Helper method for email validation
+    isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+}
+
+export default DeliveryController;
 
 // Get delivery by ID
 export const getDelivery = async (req, res) => {

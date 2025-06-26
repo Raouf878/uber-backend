@@ -14,10 +14,10 @@ model User {
   lastName    String
   email       String       @unique
   password    String
-  role        String
-  orders      Order[]
-  deliveries  Delivery[]
-  restaurants Restaurant[] // Added missing relation field
+  role        String       // CLIENT, RESTAURANT_OWNER, DELIVERY_PERSON, ADMIN
+  orders      Order[]      // Orders placed by user (clients)
+  deliveries  Delivery[]   // Delivery records where user is the delivery person
+  restaurants Restaurant[] // Restaurants owned by user
 }
 
 model Restaurant {
@@ -55,18 +55,24 @@ model Items {
 }
 
 model Order {
-  id           Int         @id @default(autoincrement())
-  userId       Int
-  user         User        @relation(fields: [userId], references: [id])
-  restaurantId Int // Added missing field
-  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id]) // Added missing relation
-  status       String
-  timestamp    DateTime
-  totalPrice   Float
-  orderItems   OrderItem[]
-  orderMenus   OrderMenu[]
-  deliveries   Delivery[]
-  payments     Payment[]
+  id                Int         @id @default(autoincrement())
+  userId            Int
+  user              User        @relation(fields: [userId], references: [id])
+  restaurantId      Int // Added missing field
+  restaurant        Restaurant  @relation(fields: [restaurantId], references: [id]) // Added missing relation
+  deliveryPersonId  Int?        // Nullable field for delivery person assignment
+  status            String
+  timestamp         DateTime    @default(now())
+  totalPrice        Float
+  confirmationCode  String?     // Code for client to confirm delivery
+  qrCode            String?     // QR code for restaurant pickup  pickedUpAt        DateTime?   // When delivery person picked up from restaurant
+  deliveredAt       DateTime?   // When delivered to client
+  orderItems        OrderItem[]
+  orderMenus        OrderMenu[]
+  delivery          Delivery?   // One-to-one: current active delivery
+  payments          Payment[]
+
+  @@map("order")
 }
 
 model OrderItem {
